@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Student Room Chart Search</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the table and its cells */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: #f0f4f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem; /* rounded-xl */
+            overflow: hidden; /* Ensures rounded corners apply to borders */
+            width: 100%;
+            max-width: 900px; /* Limit width for better readability */
+            border-bottom: 2px solid #a0aec0; /* Added for clearer bottom edge */
+        }
+        th, td {
+            border: 1px solid #cbd5e0; /* border-gray-300 */
+            padding: 12px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.9rem;
+            color: #334155; /* text-slate-700 */
+            /* Added styles to ensure blank cells have visible height */
+            min-height: 40px; 
+            line-height: 1.2; 
+        }
+        th {
+            background-color: #e2e8f0; /* bg-gray-200 */
+            font-weight: 600; /* font-semibold */
+            color: #1e293b; /* text-slate-800 */
+        }
+        td {
+            background-color: #ffffff; /* bg-white */
+        }
+        /* Highlight style for found registration number */
+        .highlight {
+            background-color: #fde68a !important; /* bg-amber-200 */
+            font-weight: bold;
+            color: #451a03; /* text-amber-900 */
+        }
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .search-input-group {
+            display: flex;
+            width: 100%;
+            gap: 10px;
+        }
+        .search-input-group input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #cbd5e0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            color: #1e293b;
+            outline: none;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .search-input-group input:focus {
+            border-color: #3b82f6; /* ring-blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); /* ring-blue-500/25 */
+        }
+        .search-button {
+            padding: 10px 20px;
+            background-color: #3b82f6; /* bg-blue-500 */
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .search-button:hover {
+            background-color: #2563eb; /* bg-blue-600 */
+            transform: translateY(-1px);
+        }
+        .search-button:active {
+            background-color: #1d4ed8; /* bg-blue-700 */
+            transform: translateY(0);
+        }
+        #result {
+            margin-top: 15px;
+            font-weight: 500;
+            color: #475569; /* text-slate-600 */
+            text-align: center;
+            width: 100%;
+        }
+        /* Initially hide the chart container */
+        #chartContainer {
+            display: none; /* This will hide the chart by default */
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Student Room Chart Search</h1>
+
+    <div class="search-container">
+        <label for="regNoInput" class="text-lg font-medium text-gray-700 mb-2">Enter Registration Number:</label>
+        <div class="search-input-group">
+            <input type="text" id="regNoInput" placeholder="e.g., 1901227007" 
+                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md">
+            <button onclick="searchRegNo()" class="search-button">Search</button>
+        </div>
+        <p id="result" class="text-base"></p>
+    </div>
+
+    <!-- Chart Container - will be dynamically populated and shown -->
+    <div id="chartContainer">
+        <h2 id="roomNoHeader" class="text-2xl font-semibold text-gray-800 mb-4"></h2>
+        <table id="roomChartTable" class="w-full">
+            <!-- Table content will be generated by JavaScript -->
+        </table>
+    </div>
+
+    <script>
+        // Data for all room charts, extracted from your Word file
+        const roomChartsData = {
+            "Civil -101": [
+                ["2407020036", "", "2302020055", "2401020429", "", "2401020443"],
+                ["2407020044", "", "2302020062", "2401020432", "", "2401020445"],
+                ["2407020052", "", "1901227615", "2401020433", "", "2401020449"],
+                ["2407020053", "", "2301020036", "2401020434", "", "2401020450"],
+                ["2307020010", "", "2401020420", "2401020435", "", "2401020451"],
+                ["2307020012", "", "2401020421", "2401020436", "", "2401020453"],
+                ["2407030001", "", "2401020424", "2401020437", "", "2401020454"],
+                ["2202020001", "", "2401020425", "2401020439", "", "2401020456"],
+                ["2202020004", "", "2401020426", "2401020440", "", "2401020459"],
+                ["2302020014", "", "2401020428", "2401020442", "", "2401020461"],
+                ["", "", "", "", "", ""] // Empty row to match visual representation
+            ],
+            "Civil -102": [
+                ["2401020462", "", "2401020476", "2401020491", "", "2401020505"],
+                ["2401020463", "", "2401020477", "2401020492", "", "2401020657"],
+                ["2401020464", "", "2401020481", "2401020493", "", "2401020760"],
+                ["2401020466", "", "2401020483", "2401020495", "", "2401020796"],
+                ["2401020468", "", "2401020484", "2401020498", "", "2401020943"],
+                ["2401020470", "", "2401020485", "2401020499", "", "2401020995"],
+                ["2401020472", "", "2401020486", "2401020500", "", "2401021042"],
+                ["2401020473", "", "2401020487", "2401020502", "", "2201020374"],
+                ["2401020474", "", "2401020488", "2401020503", "", "2201020414"],
+                ["2401020475", "", "2401020490", "2401020504", "", "2301020165"],
+                ["", "", "", "", "", ""] // Empty row to match visual representation
+            ],
+            "Civil -201": [
+                ["2401020289", "", "2401020338", "2401020379", "", "2401020811"],
+                ["2401020293", "", "2401020344", "2401020380", "", "2401020812"],
+                ["2401020295", "", "2401020354", "2401020381", "", "2401020817"],
+                ["2401020308", "", "2401020360", "2401020382", "", "2401020821"],
+                ["2401020314", "", "2401020366", "2401020388", "", "2401020822"],
+                ["2401020315", "", "2401020367", "2401020409", "", "2401020927"],
+                ["2401020320", "", "2401020368", "2401020410", "", "2401020928"],
+                ["2401020332", "", "2401020374", "2401020414", "", "2401021002"],
+                ["2401020336", "", "2401020377", "2401020416", "", "2401021028"],
+                ["2401020337", "", "2401020378", "2401020767", "", "2401021096"],
+                ["", "", "", "", "", ""] // Empty row to match visual representation
+            ],
+            "BS -303": [
+                ["2401021130", "", "2401020800", "2401020516", "", "2401020545"],
+                ["2401021135", "", "2401020924", "2401020521", "", "2401020549"],
+                ["2301020945", "", "2401021034", "2401020522", "", "2401020552"],
+                ["2401020722", "", "2401021125", "2401020526", "", "2401020555"],
+                ["2401020797", "", "2401021133", "2401020527", "", "2401020562"],
+                ["2401020923", "", "2101020438", "2401020529", "", "2401020568"],
+                ["2401021074", "", "2301020338", "2401020530", "", "2401020576"],
+                ["2401021128", "", "2301020382", "2401020531", "", "2401020741"],
+                ["2401020724", "", "2401020322", "2401020534", "", "2401020742"],
+                ["2401020732", "", "2401020509", "2401020536", "", "2401020743"],
+                ["2401020799", "", "2401020515", "2401020544", "", "2401020746"],
+                ["", "", "", "", "", ""] // Empty row to match visual representation
+            ],
+            "BS -401": [ // Adjusted to 7 columns consistently as per image
+                ["2401020981", "2401021084", "2401020874", "", "2401020949", "2101020663", "2301020689"],
+                ["2401021013", "2401021093", "2301020617", "2401020979", "2401020744", "2301020897", ""],
+                ["2401021014", "2401021097", "2401020639", "2401021032", "2401020750", "2401020733", ""],
+                ["2401021037", "2401021104", "2401020665", "2401021047", "2401020751", "2401020734", ""],
+                ["2401021039", "2401020670", "2401020666", "2401021063", "2401020929", "2401020738", ""],
+                ["2401021064", "2401020674", "2401020936", "2401021106", "2201020786", "2401020739", ""],
+                ["", "", "", "", "", "", ""], // Empty rows as observed in the image
+                ["", "", "", "", "", "", ""],
+                ["", "", "", "", "", "", ""],
+                ["", "", "", "", "", "", ""],
+                ["", "", "", "", "", "", ""]
+            ],
+            "EB- 102": [ // This section was correctly extracted and has 6 columns.
+                ["2401020581", "2401020004", "2401020089", "", "2401020151", "2401021131"],
+                ["2401020584", "2401020012", "2401020091", "", "2401020155", "2401021132"],
+                ["2401020827", "2401020020", "2401020094", "", "2401020163", "2401020722"],
+                ["2401020830", "2401020021", "2401020096", "", "2401020169", "2401020593"],
+                ["2101020477", "2401020023", "2401020098", "", "2401020865", "2401020594"],
+                ["2201020789", "2401020027", "2401020105", "", "2401020914", "2401020608"],
+                ["2201020856", "2401020034", "2401020106", "", "2401021006", "2401020610"],
+                ["2201020857", "2401020046", "2401020107", "", "2401021007", "2401020619"],
+                ["2301020544", "2401020069", "2401020119", "", "2401021009", "2401020621"],
+                ["2301020565", "2401020074", "2401020125", "", "2401021019", "2401020632"],
+                ["2301020606", "2401020075", "2401020133", "", "2401021024", "2401020633"],
+                ["2301020607", "2401020081", "2401020140", "", "2401021079", "2401020634"],
+                ["2301020771", "2401020082", "2401020142", "", "2401021098", "2401020635"],
+                ["2401020001", "2401020088", "2401020148", "", "2401021111", "2401020640"],
+                ["", "", "", "", "", ""], // Empty rows as observed in the image
+                ["", "", "", "", "", ""],
+                ["", "", "", "", "", ""],
+                ["", "", "", "", "", ""],
+                ["", "", "", "", "", ""]
+            ],
+            "EB- 201": [ // Adjusted to 5 columns consistently as per image
+                ["2201020638", "2401021052", "2401020266", "2201020535", "2401020803"],
+                ["2401020238", "2401021100", "2401020267", "2301020936", "2401020908"],
+                ["2401020240", "2401021115", "2401020272", "", "2401020962"],
+                ["2401020255", "2301020081", "2401020273", "", "2401020998"],
+                ["2401020259", "2301020182", "2401020753", "", "2401020999"],
+                ["", "2301020158", "2401020763", "", "2401021029"],
+                ["", "", "", "", ""], // Empty rows as observed in the image
+                ["", "", "", "", ""],
+                ["", "", "", "", ""]
+            ],
+            "FP -301": [
+                ["2401020675", "", "2401020696", "2401020707", "", "2401020879"],
+                ["2401020676", "", "2401020698", "2401020708", "", "2401020880"],
+                ["2401020677", "", "2401020699", "2401020710", "", "2401020881"],
+                ["2401020681", "", "2401020700", "2401020711", "", "2401020883"],
+                ["2401020682", "", "2401020701", "2401020714", "", "2401020904"],
+                ["2401020683", "", "2401020702", "2401020717", "", "2401020920"],
+                ["2401020684", "", "2401020703", "2401020718", "", "2401020938"],
+                ["2401020686", "", "2401020704", "2401020875", "", "2401020939"],
+                ["2401020692", "", "2401020705", "2401020877", "", "2401020947"],
+                ["2401020694", "", "2401020706", "2401020878", "", "2401020957"],
+                ["", "", "", "", "", ""], // Empty rows as observed in the image
+                ["", "", "", "", "", ""],
+                ["", "", "", "", "", ""]
+            ],
+            "RIHC- 1": [ // Adjusted to 6 columns consistently as per image
+                ["2401020747", "", "", "", "", "2401021035"],
+                ["2401020748", "", "2401020650", "2401020889", "", "2401021070"],
+                ["2401020793", "", "2401020651", "2401020891", "", "2401021114"],
+                ["2401020794", "", "2401020652", "2401020894", "", "2401021134"],
+                ["2401020940", "", "2401020655", "2401020896", "", "2401021136"],
+                ["2401020983", "", "2401020656", "2401020897", "", ""],
+                ["2401021073", "", "2401020784", "2401020984", "", ""],
+                ["2401021112", "", "2401020888", "2401020988", "", ""],
+                ["", "", "", "", "", ""], // Empty rows as observed in the image
+                ["", "", "", "", "", ""],
+                ["", "", "", "", "", ""]
+            ]
+        };
+
+        /**
+         * Function to build and display the room chart table.
+         * @param {string} roomName - The name of the room to display.
+         * @param {string} highlightRegNo - The registration number to highlight.
+         */
+        function displayRoomChart(roomName, highlightRegNo = "") {
+            const tableElement = document.getElementById("roomChartTable");
+            const roomNoHeader = document.getElementById("roomNoHeader");
+            const roomData = roomChartsData[roomName];
+
+            if (!roomData) {
+                roomNoHeader.textContent = `Room No. ${roomName}`;
+                // Fallback to a reasonable colspan if no data found
+                tableElement.innerHTML = '<thead><tr><th colspan="6" class="text-xl">Regd no</th></tr></thead><tbody><tr><td colspan="6">No chart data available for this room.</td></tr></tbody>';
+                return;
+            }
+
+            // Determine the maximum number of columns for the current room
+            let maxCols = 0;
+            roomData.forEach(row => {
+                if (row.length > maxCols) {
+                    maxCols = row.length;
+                }
+            });
+            // Ensure a default colspan for the header if data is empty or malformed
+            if (maxCols === 0) maxCols = 6; 
+
+            let tableHTML = `<thead><tr><th colspan="${maxCols}" class="text-xl">Regd no</th></tr></thead><tbody>`;
+
+            roomNoHeader.textContent = `Room No. ${roomName}`;
+
+            roomData.forEach(row => {
+                tableHTML += '<tr>';
+                // Ensure each row has 'maxCols' cells, adding empty ones if needed
+                for (let i = 0; i < maxCols; i++) {
+                    const cellData = row[i] !== undefined ? row[i] : ""; // Use empty string for missing data
+                    const highlightClass = (cellData === highlightRegNo) ? 'highlight' : '';
+                    tableHTML += `<td class="${highlightClass}">${cellData}</td>`;
+                }
+                tableHTML += '</tr>';
+            });
+            tableHTML += '</tbody>';
+            tableElement.innerHTML = tableHTML;
+        }
+
+        /**
+         * Function to search for a registration number across all charts and display the relevant chart.
+         */
+        function searchRegNo() {
+            const regNo = document.getElementById("regNoInput").value.trim();
+            const resultElement = document.getElementById("result");
+            const chartContainer = document.getElementById("chartContainer");
+            let foundInRoom = null;
+            let foundRegNo = null;
+
+            // Clear previous results and highlights
+            resultElement.textContent = "";
+            chartContainer.style.display = "none"; // Hide chart until found
+
+            if (regNo === "") {
+                resultElement.textContent = "Please enter a registration number to search.";
+                return;
+            }
+
+            // Iterate through all rooms to find the registration number
+            for (const roomName in roomChartsData) {
+                const roomData = roomChartsData[roomName];
+                for (let r = 0; r < roomData.length; r++) {
+                    for (let c = 0; c < roomData[r].length; c++) {
+                        // Check if cell data (trimmed) matches the registration number
+                        if (String(roomData[r][c]).trim() === regNo) {
+                            foundInRoom = roomName;
+                            foundRegNo = regNo;
+                            break; 
+                        }
+                    }
+                    if (foundInRoom) break; 
+                }
+                if (foundInRoom) break; 
+            }
+
+            // Display chart and highlight if found, otherwise show not found message
+            if (foundInRoom) {
+                displayRoomChart(foundInRoom, foundRegNo);
+                resultElement.textContent = `Registration number "${foundRegNo}" found in Room No. ${foundInRoom}.`;
+                chartContainer.style.display = "block"; // Show the chart
+                // Scroll to the highlighted element
+                const highlightedCell = document.querySelector('.highlight');
+                if (highlightedCell) {
+                    highlightedCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            } else {
+                resultElement.textContent = `Registration number "${regNo}" not found in any chart.`;
+                chartContainer.style.display = "none"; // Keep chart hidden if not found
+            }
+        }
+
+        // Add event listener for Enter key press on the input field
+        document.getElementById("regNoInput").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent default action (e.g., form submission)
+                searchRegNo(); // Call the search function
+            }
+        });
+    </script>
+
+</body>
+</html>
